@@ -2,6 +2,8 @@
 
 #include "resource.h"
 #include <memory>
+#include "Camera.h"
+#include "Draw.h"
 
 namespace SoftRaster {
 	int g_width = 0;
@@ -14,6 +16,29 @@ namespace SoftRaster {
 	std::shared_ptr<float[]> g_depthBuffer = nullptr;
 
 	unsigned int bgColor = ((123 << 16) | (195 << 8) | 221);	//一个浅蓝色背景
+
+	//创建一个相机
+	Camera camera(
+		{ 5.0f, 5.0f, -5.0f, 1.0f },  // Pos
+		{ 0.0f, 0.0f, 0.0f, 1.0f },   // LookAt
+		{ 0.0f, 1.0f, 0.0f, 0.0f }    // 摄像机上方向
+	);
+
+	// 目标立方体8个顶点 摄像机方向
+	std::vector<vertex> vertexes = {
+		// 近相机面
+		{{-1.0f, +1.0f, -1.0f, 1.0f}, {1.0f, 0.0f, 0.0f, 0.0f}},
+		{{+1.0f, +1.0f, -1.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 0.0f}},
+		{{+1.0f, -1.0f, -1.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}},
+		{{-1.0f, -1.0f, -1.0f, 1.0f}, {1.0f, 0.0f, 1.0f, 0.0f}},
+
+		// 远相机面
+		{{-1.0f, +1.0f, +1.0f, 1.0f}, {1.0f, 0.0f, 1.0f, 0.0f}},
+		{{+1.0f, +1.0f, +1.0f, 1.0f}, {1.0f, 0.0f, 0.0f, 0.0f}},
+		{{+1.0f, -1.0f, +1.0f, 1.0f}, {1.0f, 0.0f, 1.0f, 0.0f}},
+		{{-1.0f, -1.0f, +1.0f, 1.0f}, {0.0f, 0.0f, 1.0f, 0.0f}}
+	};
+
 
 	//初始化
 	void initRenderer(int w, int h, HWND hWnd);
@@ -28,6 +53,14 @@ namespace SoftRaster {
 void SoftRaster::initRenderer(int w, int h, HWND hWnd) {
 	g_width = w;
 	g_height = h;
+
+
+	camera.setPerspectiveForLH(
+		3.1415926f * 0.25f,       // 上下45度视野
+		(float)w / (float)h,	// 长宽比
+		1.0f,		//近裁剪平面
+		200.0f		//远裁剪平面
+	);
 
 	//创建一个屏幕缓冲
 	HDC hDC = GetDC(hWnd);
@@ -50,6 +83,9 @@ void SoftRaster::initRenderer(int w, int h, HWND hWnd) {
 
 void SoftRaster::update(HWND hWnd) {
 	clearBuffer();
+
+	//绘制内容
+	drawCube();
 
 	//将frameBuffer呈现到屏幕上
 	HDC hDC = GetDC(hWnd);
