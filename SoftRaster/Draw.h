@@ -8,6 +8,7 @@ namespace SoftRaster {
     extern unsigned int* g_frameBuffer;
     extern Camera camera;
     extern std::vector<vertex> vertexes;
+    extern std::shared_ptr<float[]> g_depthBuffer;
 
     //绘制颜色
     unsigned int drawColor = (255 << 8);    //绘制颜色，默认为绿色
@@ -20,7 +21,7 @@ namespace SoftRaster {
     };
 
     //初始化绘制模式
-    RenderMode g_renderMode = RenderMode::RENDER_WIREFRAME;
+    RenderMode g_renderMode = RenderMode::RENDER_COLOR;
 
     //规则观察体CVV裁剪
     bool checkCvv(const Vector4& v);
@@ -153,9 +154,9 @@ void SoftRaster::drawPrimitive(const vertex& a, const vertex& b, const vertex& c
     transformScreen(p2, g_width, g_height);
     transformScreen(p3, g_width, g_height);
 
-    // 4. 绘制线框
-    if (g_renderMode == RenderMode::RENDER_WIREFRAME)
+    if (g_renderMode == RenderMode::RENDER_WIREFRAME)  
     {
+        //绘制线框
         int x1 = (int)(p1.x + 0.5f), x2 = (int)(p2.x + 0.5f), x3 = (int)(p3.x + 0.5f);
         int y1 = (int)(p1.y + 0.5f), y2 = (int)(p2.y + 0.5f), y3 = (int)(p3.y + 0.5f);
         drawLine(x1, y1, x2, y2, drawColor);
@@ -164,12 +165,36 @@ void SoftRaster::drawPrimitive(const vertex& a, const vertex& b, const vertex& c
     }
     else
     {
+        //绘制面
+        drawPrimitiveScanLine({ p1, a.color }, { p2, b.color }, { p3, c.color });
     }
 
 
 }
 
 void SoftRaster::drawPrimitiveScanLine(const vertex& a, const vertex& b, const vertex& c) {
+    float xl = a.pos.x; if (b.pos.x < xl) xl = b.pos.x; if (c.pos.x < xl) xl = c.pos.x;
+    float xr = a.pos.x; if (b.pos.x > xr) xr = b.pos.x; if (c.pos.x > xr) xr = c.pos.x;
+    float yt = a.pos.y; if (b.pos.y < yt) yt = b.pos.y; if (c.pos.y < yt) yt = c.pos.y;
+    float yb = a.pos.y; if (b.pos.y > yb) yb = b.pos.y; if (c.pos.y > yb) yb = c.pos.y;
+
+    int xMin = (int)(xl + 0.5f), xMax = (int)(xr + 0.5f), yMin = (int)(yt + 0.5f), yMax = (int)(yb + 0.5f);
+    for (int x = xMin; x <= xMax; ++x)
+    {
+        for (int y = yMin; y <= yMax; ++y)
+        {
+            // 计算是否在三角形内部
+            Vector4 ret = barycentric(a.pos, b.pos, c.pos, { (float)x, (float)y, 0.0f, 0.0f });
+            if (ret.x < 0 || ret.y < 0 || ret.z < 0) continue;
+            unsigned int colorR = (unsigned int)((a.color.x * ret.x + b.color.x * ret.y + c.color.x * ret.z) * 255);
+            unsigned int colorG = (unsigned int)((a.color.y * ret.x + b.color.y * ret.y + c.color.y * ret.z) * 255);
+            unsigned int colorB = (unsigned int)((a.color.z * ret.x + b.color.z * ret.y + c.color.z * ret.z) * 255);
+            float depth = (a.pos.z * ret.x + b.pos.z * ret.y + c.pos.z * ret.z);
+            if (g_depthBuffer[x + y * g_width] < depth)continue;
+            g_depthBuffer[x + y * g_width] = depth;
+            drawPixel(x, y, (colorR << 16) | (colorG << 8) | colorB);
+        }
+    }
 
 }
 
