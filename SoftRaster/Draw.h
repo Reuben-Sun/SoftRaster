@@ -25,14 +25,20 @@ namespace SoftRaster {
     //规则观察体CVV裁剪
     bool checkCvv(const Vector4& v);
 
+    //求三角形质心
+    Vector4 barycentric(const Vector4& a, const Vector4& b, const Vector4& c, const Vector4& p);
+
 	//绘制像素
 	void drawPixel(int x, int y, unsigned int color);
 
 	//绘制线
 	void drawLine(int x1, int y1, int x2, int y2, unsigned int color);
 
-	//绘制三角形
+	//绘制三角图元
 	void drawPrimitive(const vertex& a, const vertex& b, const vertex& c);
+
+    //绘制三角图元
+    void drawPrimitiveScanLine(const vertex& a, const vertex& b, const vertex& c);
 
 	//绘制平面
 	void drawPlane(int leftTop, int rightTop, int rightBottom, int leftBottom);
@@ -51,6 +57,18 @@ bool SoftRaster::checkCvv(const Vector4& v) {
     if (v.y > v.w) return true;
     return false;
 }
+
+SoftRaster::Vector4 SoftRaster::barycentric(const Vector4& a, const Vector4& b, const Vector4& c, const Vector4& p)
+{
+    Vector4 v1 = { c.x - a.x, b.x - a.x, a.x - p.x };   
+    Vector4 v2 = { c.y - a.y, b.y - a.y, a.y - p.y };   
+
+    Vector4 u = cross(v1, v2);
+    if (std::abs(u.z) > 1e-2) // dont forget that u[2] is integer. If it is zero then triangle ABC is degenerate
+        return { 1.f - (u.x + u.y) / u.z, u.y / u.z, u.x / u.z };
+    return { -1, 1, 1, 0 }; // in this case generate negative coordinates, it will be thrown away by the rasterizator
+}
+
 
 void SoftRaster::drawPixel(int x, int y, unsigned int color)
 {
@@ -148,6 +166,10 @@ void SoftRaster::drawPrimitive(const vertex& a, const vertex& b, const vertex& c
     {
     }
 
+
+}
+
+void SoftRaster::drawPrimitiveScanLine(const vertex& a, const vertex& b, const vertex& c) {
 
 }
 
