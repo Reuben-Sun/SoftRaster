@@ -16,6 +16,66 @@ namespace SoftRaster {
             _fov = fov; _aspect = aspect; _nearZ = nearZ; _farZ = farZ;
             calcMatrix();
         }
+        // 环绕
+        void circle(short xMove, short yMove)
+        {
+            // 鼠标移动像素与弧度的比例固定
+            float circleLen = 100.f;
+
+            // 1 计算绕y轴的旋转
+            float radY = xMove / circleLen;
+            Matrix mScaleY = {
+                (float)cos(radY), 0.0f, -(float)sin(radY), 0.0f,
+                0.0f, 1.0f, 0.0f, 0.0f,
+                (float)sin(radY), 0.0f, (float)cos(radY), 0.0f,
+                0.0f, 0.0f, 0.0f, 1.0f
+            };
+
+            // 2 计算绕x轴 这里需要设定一个最大角度
+            float radX = yMove / circleLen;
+            float maxRad = 3.1415926f * 0.45f;
+            _curXRand += radX;
+            if (_curXRand < -maxRad)
+            {
+                _curXRand = -maxRad;
+                radX = 0.0f;
+            }
+            if (_curXRand > maxRad)
+            {
+                _curXRand = maxRad;
+                radX = 0.0f;
+            }
+
+            Matrix mScaleX = {
+                1.0f, 0.0f, 0.0f, 0.0f,
+                0.0f, (float)cos(radX), (float)sin(radX), 0.0f,
+                0.0f, -(float)sin(radX), (float)cos(radX), 0.0f,
+                0.0f, 0.0f, 0.0f, 1.0f
+            };
+
+            _pos = transform(_pos, mScaleX);
+            _pos = transform(_pos, mScaleY);
+            calcMatrix();
+        }
+
+        // 缩放
+        void zoom(short wParam)
+        {
+            float t = 0.9f;
+            if (wParam > 0) t = 1.1f;
+            _pos.x *= t;
+            _pos.y *= t;
+            _pos.z *= t;
+            calcMatrix();
+        }
+
+        void reset()
+        {
+            _pos = _posTemp;
+            _curXRand = 0.0f;
+            calcMatrix();
+        }
+
     public:
         // 世界坐标系转到投影平面，VP矩阵
         Matrix _worldToProjection;
@@ -50,6 +110,7 @@ namespace SoftRaster {
         float _aspect;
         float _nearZ;
         float _farZ;
+        float _curXRand = 0.0f;
         // 世界坐标系转观察坐标系，V矩阵
         Matrix _worldToView;
         // 观察坐标系转投影坐标系，P矩阵

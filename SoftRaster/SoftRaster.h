@@ -48,6 +48,9 @@ namespace SoftRaster {
 	void clearBuffer();
 
 	void shutDown();
+
+	//Êó±êÊÂ¼þ
+	void onMouseMessage(UINT message, WPARAM wParam, LPARAM lParam);
 }
 
 void SoftRaster::initRenderer(int w, int h, HWND hWnd) {
@@ -115,5 +118,43 @@ void SoftRaster::shutDown() {
 	if (g_tempBM) {
 		DeleteObject(g_tempBM);
 		g_tempBM = nullptr;
+	}
+}
+
+void SoftRaster::onMouseMessage(UINT message, WPARAM wParam, LPARAM lParam) {
+	static bool isPressed = false;
+	static LPARAM lpCur = 0;
+	switch (message)
+	{
+	case WM_MOUSEWHEEL:
+		camera.zoom(GET_WHEEL_DELTA_WPARAM(wParam));
+		break;
+	case WM_LBUTTONDOWN:
+		isPressed = true;
+		lpCur = lParam;
+		break;
+	case WM_LBUTTONUP:
+		isPressed = false;
+		break;
+	case WM_MOUSEMOVE:
+		if (wParam & MK_LBUTTON)
+		{
+			short xMove = LOWORD(lParam) - LOWORD(lpCur);
+			short yMove = HIWORD(lParam) - HIWORD(lpCur);
+			lpCur = lParam;
+			camera.circle(xMove, yMove);
+		}
+		break;
+	case WM_KEYDOWN:
+		if (wParam == VK_SPACE)
+			camera.reset();
+		else if (wParam == VK_F1)
+		{
+			if (g_renderMode == RenderMode::RENDER_COLOR) g_renderMode = RenderMode::RENDER_WIREFRAME;
+			else g_renderMode = RenderMode::RENDER_COLOR;
+		}
+		break;
+	default:
+		break;
 	}
 }

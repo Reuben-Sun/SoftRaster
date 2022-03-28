@@ -82,6 +82,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
     {
+    case WM_MOUSEWHEEL:
+    case WM_LBUTTONDOWN:
+    case WM_LBUTTONUP:
+    case WM_MOUSEMOVE:
+    case WM_KEYDOWN:
+        SoftRaster::onMouseMessage(message, wParam, lParam);
+        break;
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
